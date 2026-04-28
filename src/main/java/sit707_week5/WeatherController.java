@@ -1,6 +1,7 @@
 package sit707_week5;
 
 import java.text.SimpleDateFormat;
+import java.time.Clock;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.Random;
@@ -11,9 +12,11 @@ public class WeatherController {
 
 	private static WeatherController instance;
 	
+	private Clock clock = Clock.systemDefaultZone();
+	
 	/**
 	 * Factory method for single instance WeatherController.
-	 * @return
+	 * @return WeatherController instance
 	 */
 	public static WeatherController getInstance() {
 		if (instance == null) {
@@ -22,42 +25,58 @@ public class WeatherController {
 		return instance;
 	}
 	
-	// Initialise 10 hourly temperature
+	// Initialise hourly temperature
 	private static double[] todaysHourlyTemperature = new double[HOURS_PER_DAY];
 	
 	/**
-	 * Private constructor prevents to create new instance manually.
+	 * Private constructor prevents creating a new instance manually.
 	 * A factory method needs to be used.
 	 */
 	private WeatherController() {
 		System.out.println("Creating new weather controller.");
 		
-		// sleep a while to simulate a delay
+		// Sleep a while to simulate a delay
 		sleep(2 + new Random().nextInt(5));
 		
-		// Insert 10 random temperature values in today's hourly list.
+		// Insert random temperature values in today's hourly list.
 		Random random = new Random();
-		for (int i=0; i<HOURS_PER_DAY; i++) {
+		for (int i = 0; i < HOURS_PER_DAY; i++) {
 			todaysHourlyTemperature[i] = 1 + random.nextInt(30);
 		}
 		System.out.println(Arrays.toString(todaysHourlyTemperature));
+	}
+	
+	/**
+	 * Allows the test class to inject a fixed clock.
+	 * This makes time-based testing repeatable.
+	 * @param clock test or system clock
+	 */
+	public void setClock(Clock clock) {
+		this.clock = clock;
+	}
+	
+	/**
+	 * Resets the clock back to the real system clock.
+	 */
+	public void resetClock() {
+		this.clock = Clock.systemDefaultZone();
 	}
 	
 	public void close() {
 		System.out.println("Closing weather controller.");
 		instance = null;
 		
-		// sleep a while to simulate a delay
+		// Sleep a while to simulate a delay
 		sleep(2 + new Random().nextInt(5));
 	}
 	
 	/**
 	 * Calculate minimum of today's hourly temperatures.
-	 * @return
+	 * @return minimum temperature
 	 */
 	public double getTemperatureMinFromCache() {
 		double minVal = 1000;
-		for (int i=0; i<todaysHourlyTemperature.length; i++) {
+		for (int i = 0; i < todaysHourlyTemperature.length; i++) {
 			if (minVal > todaysHourlyTemperature[i]) {
 				minVal = todaysHourlyTemperature[i];
 			}
@@ -67,11 +86,11 @@ public class WeatherController {
 
 	/**
 	 * Calculate maximum of today's hourly temperatures.
-	 * @return
+	 * @return maximum temperature
 	 */
 	public double getTemperatureMaxFromCache() {
 		double maxVal = -1;
-		for (int i=0; i<todaysHourlyTemperature.length; i++) {
+		for (int i = 0; i < todaysHourlyTemperature.length; i++) {
 			if (maxVal < todaysHourlyTemperature[i]) {
 				maxVal = todaysHourlyTemperature[i];
 			}
@@ -81,54 +100,56 @@ public class WeatherController {
 	
 	/**
 	 * Calculate average of today's hourly temperatures.
-	 * @return
+	 * @return average temperature
 	 */
 	public double getTemperatureAverageFromCache() {
 		double sumVal = 0;
-		for (int i=0; i<todaysHourlyTemperature.length; i++) {
+		for (int i = 0; i < todaysHourlyTemperature.length; i++) {
 			sumVal += todaysHourlyTemperature[i];
 		}
-		return sumVal/todaysHourlyTemperature.length;
+		return sumVal / todaysHourlyTemperature.length;
 	}
 	
 	/**
 	 * Return temperature for given hour of current day.
-	 * @param hour
-	 * @return
+	 * @param hour hour of the day
+	 * @return temperature value
 	 */
 	public double getTemperatureForHour(int hour) {
-		// sleep a while to simulate a delay
+		// Sleep a while to simulate a delay
 		sleep(1 + new Random().nextInt(5));
 		
-		// Let's return a randomly selected temperature from hourly list if hour does not exist.
+		// Return a randomly selected temperature from hourly list if hour does not exist.
 		if (hour > todaysHourlyTemperature.length) {
 			hour = 1 + new Random().nextInt(todaysHourlyTemperature.length);
 		}
 		
 		// Hour index starts from 0 instead of 1 due to array indexing.
-		return todaysHourlyTemperature[hour-1];
+		return todaysHourlyTemperature[hour - 1];
 	}
 	
 	/**
-	 * Persist reported temperature to data store and return recorded time. 
-	 * @param hour
-	 * @param temperature
-	 * @return
+	 * Persist reported temperature to data store and return recorded time.
+	 * A Clock object is used so the time can be controlled during unit testing.
+	 * @param hour hour value
+	 * @param temperature temperature value
+	 * @return saved time
 	 */
 	public String persistTemperature(int hour, double temperature) {
 		SimpleDateFormat sdf = new SimpleDateFormat("H:m:s");
-		String savedTime = sdf.format(new Date());
+		String savedTime = sdf.format(Date.from(clock.instant()));
+		
 		System.out.println("Temperature: " + temperature + " of hour: " + hour + ", saved at " + savedTime);
 		
-		// sleep a while to simulate a delay
+		// Sleep a while to simulate a delay
 		sleep(1 + new Random().nextInt(2));
 		
 		return savedTime;
 	}
 	
 	/**
-	 * Calculated the number of hours temperature data is available for today.
-	 * @return
+	 * Calculate the number of hours temperature data is available for today.
+	 * @return total hours
 	 */
 	public int getTotalHours() {
 		return todaysHourlyTemperature.length;
@@ -136,13 +157,12 @@ public class WeatherController {
 	
 	/**
 	 * Sleep for specified seconds.
-	 * @param sec
+	 * @param sec seconds
 	 */
 	public static void sleep(int sec) {
 		try {
-			Thread.sleep(sec*1000);
+			Thread.sleep(sec * 1000);
 		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
